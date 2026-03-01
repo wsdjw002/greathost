@@ -40,8 +40,8 @@ jobs:
           BASE_URL: https://greathost.es
           HEADLESS: "1"
           README_PATH: README.md
-          MAX_SERVERS: "2"             # 本次最多续期 2 台
-          REQUIRE_ALL_SUCCESS: "1"     # 1=两台都成功才写README；0=至少一台成功就写
+          MAX_SERVERS: "1"             # 本次最多续期 2 台
+          REQUIRE_ALL_SUCCESS: "0"     # 1=两台都成功才写README；0=至少一台成功就写
           GREATHOST_EMAIL: ${{ secrets.GREATHOST_EMAIL }}
           GREATHOST_PASSWORD: ${{ secrets.GREATHOST_PASSWORD }}
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
