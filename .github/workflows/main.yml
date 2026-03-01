@@ -29,10 +29,10 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install Playwright (Chromium)
+      - name: Install Playwright (Chromium) and requests
         run: |
           python -m pip install --upgrade pip
-          pip install playwright
+          pip install playwright requests
           python -m playwright install --with-deps chromium
 
       - name: Run renew script
@@ -44,6 +44,8 @@ jobs:
           REQUIRE_ALL_SUCCESS: "1"     # 1=两台都成功才写README；0=至少一台成功就写
           GREATHOST_EMAIL: ${{ secrets.GREATHOST_EMAIL }}
           GREATHOST_PASSWORD: ${{ secrets.GREATHOST_PASSWORD }}
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
           python renew.py
 
