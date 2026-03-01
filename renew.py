@@ -8,6 +8,28 @@ from urllib.parse import urljoin
 from typing import List, Dict, Any
 from playwright.sync_api import sync_playwright, TimeoutError as PWTimeout
 
+# --------------- 新增：Telegram 通知 ---------------
+import requests
+
+def send_telegram_message(text: str):
+    """发送 Telegram 通知"""
+    token = os.getenv("TELEGRAM_TOKEN")
+    chat_id = os.getenv("TELEGRAM_CHAT_ID")
+    if not token or not chat_id:
+        return
+    try:
+        url = f"https://api.telegram.org/bot{token}/sendMessage"
+        payload = {
+            "chat_id": chat_id,
+            "text": text,
+            "parse_mode": "HTML",
+            "disable_web_page_preview": True
+        }
+        requests.post(url, json=payload, timeout=10)
+        log("Telegram 通知已发送")
+    except Exception as e:
+        log(f"Telegram 发送失败: {e}")
+
 # --------------- 工具 ---------------
 def log(msg):
     print(f"[renew] {msg}", flush=True)
@@ -360,7 +382,7 @@ def update_readme_on_success_multi(readme_path: str):
 
     log("已将续期成功写入 README.md（仅显示状态与时间）")
 
-# --------------- 主流程（单账号，最多两台） ---------------
+# --------------- 主流程 ---------------
 def main():
     base_url = os.getenv("BASE_URL", "https://greathost.es").rstrip("/")
     headless = os.getenv("HEADLESS", "1") != "0"
@@ -395,10 +417,12 @@ def main():
         try:
             if not login(page, base_url, email, password):
                 log("登录失败")
+                send_telegram_message("❌ Greathost 续期失败：登录失败")
                 sys.exit(2)
 
             if not goto_contracts(page):
                 log("进入 Contracts 失败")
+                send_telegram_message("❌ Greathost 续期失败：无法进入 Contracts 页面")
                 sys.exit(3)
 
             # 优先：收集详情链接并逐个新页处理
@@ -432,6 +456,32 @@ def main():
 
             succ = [r for r in results if r.get("success")]
             log(f"续期结果：成功 {len(succ)}/{len(results)}")
+
+            # 构建 Telegram 消息
+            detail_lines = []
+            for i, r in enumerate(results, 1):
+                status = "✅" if r.get("success") else "❌"
+                msg = r.get("message", "")
+                detail_lines.append(f"服务器{i}: {status} {msg}")
+            detail_msg = "\n".join(detail_lines)
+
+            if len(succ) > 0:
+                # 有成功的续期
+                text = (
+                    f"✅ Greathost 续期成功\n"
+                    f"成功: {len(succ)}/{len(results)}\n"
+                    f"时间: {now_bjt_str()}\n"
+                    f"{detail_msg}"
+                )
+                send_telegram_message(text)
+            else:
+                # 全部失败
+                text = (
+                    f"❌ Greathost 续期失败\n"
+                    f"时间: {now_bjt_str()}\n"
+                    f"{detail_msg}"
+                )
+                send_telegram_message(text)
 
             # 控制 README 更新策略
             should_update = (len(results) > 0) and (
